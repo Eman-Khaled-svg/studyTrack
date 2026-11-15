@@ -59,10 +59,10 @@ export default function SubjectView({ s, upd, toggleItem, remove }) {
 
   return (
     <div>
-      <div className={`${card} flex items-center gap-4`} style={{ background: s.color + "55" }}>
+      <div className={`${card} grid grid-cols-[auto_1fr] items-center gap-4 sm:grid-cols-[auto_1fr_auto]`} style={{ background: s.color + "55" }}>
         <IconBox icon={ico(s)} color={s.color} className="h-14 w-14 text-2xl" />
-        <div className="flex-1">
-          <h1 className="text-2xl font-extrabold">
+        <div className="min-w-0">
+  <h1 className="text-xl font-extrabold sm:text-2xl">
             {s.name}
             {st.p === 100 && st.t > 0 && (
               <span className="ms-3 rounded-lg border-2 border-black bg-green-400 px-2 align-middle text-xs font-extrabold">
@@ -74,13 +74,13 @@ export default function SubjectView({ s, upd, toggleItem, remove }) {
             {s.units.length} أقسام · {st.t} عنصر للمذاكرة
           </div>
           <div className="mt-2 flex flex-wrap items-center gap-2 text-xs">
-            <label className="flex items-center gap-1.5 font-bold">
+           <label className="flex flex-wrap items-center gap-1.5 font-bold">
               <Icon n="fa-calendar-day" /> الامتحان:
               <input
                 type="date"
                 value={s.exam || ""}
                 onChange={(e) => upd(s.id, (x) => ({ ...x, exam: e.target.value }))}
-                className="rounded-lg border-2 border-black bg-white px-2 py-0.5 font-mono"
+               className="w-36 min-w-0 rounded-lg border-2 border-black bg-white px-2 py-0.5 font-mono"
               />
             </label>
             {examLabel && (
@@ -93,7 +93,7 @@ export default function SubjectView({ s, upd, toggleItem, remove }) {
             )}
           </div>
         </div>
-        <div className="text-end">
+        <div className="col-span-2 flex items-baseline justify-between border-t-2 border-black/20 pt-3 sm:col-span-1 sm:block sm:border-0 sm:pt-0 sm:text-end">
           <div className="text-4xl font-extrabold leading-none">{st.p}%</div>
           <div className="mt-1 font-mono text-xs text-black/55">
             {st.d}/{st.t} خلصت
