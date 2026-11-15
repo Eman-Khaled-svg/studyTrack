@@ -18,6 +18,7 @@ export default function Overview({ subjects, open, toggleItem }) {
   const next = byExam
     .flatMap((s) => s.units.flatMap((u) => u.lectures.filter((l) => !l.done).map((l) => ({ s, u, l }))).slice(0, 2))
     .slice(0, 6);
+    const exams = subjects.filter((s) => daysLeft(s.exam) !== null).sort((a, b) => a.exam.localeCompare(b.exam));
 
   const tiles = [
     { icon: "fa-fire", color: "#FF8A3D", v: streak(subjects), l: "يوم متتالي" },
@@ -66,6 +67,47 @@ export default function Overview({ subjects, open, toggleItem }) {
 
       <div className={card}>
         <h2 className="mb-2 font-extrabold">
+                <div className={card}>
+        <h2 className="mb-3 font-extrabold">
+          <Icon n="fa-calendar-check" className="me-2 text-red-500" />
+          جدول الامتحانات
+        </h2>
+        {exams.length === 0 ? (
+          <div className="py-3 text-center text-sm text-black/45">حدد موعد الامتحان من صفحة كل مادة وهيظهر هنا.</div>
+        ) : (
+          <div className="grid gap-2.5 sm:grid-cols-2">
+            {exams.map((s) => {
+              const n = daysLeft(s.exam);
+              const rest = stat(s).t - stat(s).d;
+              const dt = new Date(s.exam + "T00:00:00");
+              return (
+                <button
+                  key={s.id}
+                  onClick={() => open(s.id)}
+                  className={`flex w-full items-center gap-3 rounded-xl border-2 border-black bg-white p-2.5 text-start text-sm transition hover:-translate-y-0.5 ${n < 0 ? "opacity-50" : ""}`}
+                >
+               <span className="grid h-16 w-16 flex-none place-items-center rounded-xl border-2 border-black leading-none shadow-[2px_2px_0_0_#000]" style={{ background: s.color }}>
+  <b className="text-3xl">{dt.getDate()}</b>
+  <span className="-mt-3 text-xs font-bold">{dt.toLocaleDateString("ar-EG", { month: "short" })}</span>
+</span>
+                  <span className="min-w-0 flex-1">
+                    <b className="block leading-snug">{s.name}</b>
+                    <span className="text-xs text-black/55">
+                      {dt.toLocaleDateString("ar-EG", { weekday: "long" })} · باقي {rest} عنصر
+                    </span>
+                  </span>
+                  <span
+                    className="rounded-lg border-2 border-black px-2 py-0.5 text-xs font-extrabold"
+                    style={{ background: n < 0 ? "#E5E5E5" : n <= 3 ? "#FF3B4E" : n <= 7 ? "#FF8A3D" : "#22E55E" }}
+                  >
+                    {n < 0 ? "عدّى" : n === 0 ? "النهارده" : `${n} يوم`}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        )}
+      </div>
           <Icon n="fa-bullseye" className="me-2 text-red-500" />
           المذاكرة الجاية
         </h2>
