@@ -82,7 +82,16 @@ export default function SubjectView({ s, upd, toggleItem, remove }) {
                 onChange={(e) => upd(s.id, (x) => ({ ...x, exam: e.target.value }))}
                className="w-36 min-w-0 rounded-lg border-2 border-black bg-white px-2 py-0.5 font-mono"
               />
-            </label>
+                       </label>
+            {s.exam && (
+              <button
+                type="button"
+                onClick={() => upd(s.id, (x) => ({ ...x, exam: "" }))}
+                className="inline-flex items-center gap-1 rounded-lg border-2 border-black bg-white px-2 py-0.5 font-bold text-red-600 transition hover:bg-red-100"
+              >
+                <Icon n="fa-calendar-xmark" /> إلغاء الموعد
+              </button>
+            )}
             {examLabel && (
               <span
                 className="rounded-lg border-2 border-black px-2 py-0.5 font-extrabold"
