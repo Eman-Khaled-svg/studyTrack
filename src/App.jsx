@@ -22,6 +22,24 @@ export default function App() {
   const [toast, setToast] = useState(null);
   const [confirmReset, setConfirmReset] = useState(false);
   const [newName, setNewName] = useState("");
+    const [menu, setMenu] = useState(false);
+
+
+  // Esc يقفل القائمة + منع سكرول الصفحة وهي مفتوحة
+  useEffect(() => {
+    const onKey = (e) => e.key === "Escape" && setMenu(false);
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
+  useEffect(() => {
+    document.body.style.overflow = menu ? "hidden" : "";
+    return () => (document.body.style.overflow = "");
+  }, [menu]);
+
+  const go = (k) => {
+    setView(k);
+    setMenu(false);
+  };
 
   // Font Awesome + Cairo (احذفهم لو ضفتهم في index.html)
   useEffect(() => {
@@ -104,11 +122,35 @@ export default function App() {
       }}
     >
       <div className="fixed inset-x-0 top-0 z-[60] bg-white" style={{ height: "env(safe-area-inset-top, 0px)" }} />
+            <header
+        className="sticky z-20 flex items-center gap-3 border-b-2 border-black bg-white px-3 py-2 lg:hidden"
+        style={{ top: "env(safe-area-inset-top, 0px)" }}
+      >
+        <button
+          onClick={() => setMenu(true)}
+          aria-label="فتح القائمة"
+          aria-expanded={menu}
+          className="grid h-10 w-10 place-items-center rounded-xl border-2 border-black bg-yellow-300 shadow-[2px_2px_0_0_#000] transition active:translate-x-[2px] active:translate-y-[2px] active:shadow-none"
+        >
+          <Icon n="fa-bars" />
+        </button>
+        <b className="min-w-0 flex-1 truncate">{title}</b>
+        <Ring value={pct(done, all.length)} size={36} stroke={4} />
+      </header>
       <div className="lg:grid lg:grid-cols-[18rem_1fr]">
-        <Sidebar subjects={subjects} view={view} setView={setView} done={done} confirmReset={confirmReset} reset={reset} />
+        <Sidebar
+          subjects={subjects}
+          view={view}
+          setView={go}
+          done={done}
+          confirmReset={confirmReset}
+          reset={reset}
+          open={menu}
+          onClose={() => setMenu(false)}
+        />
 
         <main className="min-w-0 px-4 pb-16 pt-5 lg:px-8 lg:pt-7">
-          <div className="mb-5 flex items-center justify-between">
+                    <div className="mb-5 hidden items-center justify-between lg:flex">
             <div>
               <h1 className="text-3xl font-extrabold">{title}</h1>
               <p className="font-mono text-xs text-black/55">
