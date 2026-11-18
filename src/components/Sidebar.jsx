@@ -76,6 +76,7 @@ export default function Sidebar({ subjects, view, setView, done, confirmReset, r
         <div className="px-2 pb-1 pt-4 text-xs font-extrabold text-black/40">أدوات</div>
         {item("tasks", "fa-stopwatch", "المهام والبومودورو")}
         {item("notes", "fa-pen-to-square", "الملاحظات")}
+        {item("guide", "fa-book-open", "دليل الاستخدام")}
         <button className={`${base} ${off} mt-auto text-black/50 hover:!text-red-600`} onClick={reset}>
           <Icon n="fa-arrow-rotate-left" className="w-5 text-center" />
           {confirmReset ? "اضغط تاني للتأكيد" : "إعادة ضبط التقدم"}

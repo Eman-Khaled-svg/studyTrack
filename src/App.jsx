@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { usePersist } from "./hooks/usePersist";
+import { usePersist, load } from "./hooks/usePersist";
 import { initSubjects, migrate, CHEERS } from "./data/subjects";
 import { lecs, pct, today } from "./utils/helpers";
 import Sidebar from "./components/Sidebar";
@@ -10,6 +10,8 @@ import Todos from "./components/Todos";
 import Notes from "./components/Notes";
 import Footer from "./components/Footer";
 import { Icon, Ring, card, input, btnMain, muted } from "./components/ui";
+import Welcome from "./components/Welcome";
+import Guide from "./components/Guide";
 
 const FONTS = [
   "https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css",
@@ -22,6 +24,13 @@ export default function App() {
   const [toast, setToast] = useState(null);
   const [confirmReset, setConfirmReset] = useState(false);
   const [newName, setNewName] = useState("");
+    const [help, setHelp] = useState(() => !load("st_welcome"));
+  const closeHelp = () => {
+    setHelp(false);
+    try {
+      localStorage.setItem("st_welcome", "1");
+    } catch (e) {}
+  };
     const [menu, setMenu] = useState(false);
 
 
@@ -105,8 +114,12 @@ export default function App() {
     setNewName("");
     setView(id);
   };
-
-  const title = { overview: "نظرة عامة", tasks: "المهام والبومودورو", notes: "الملاحظات" }[view] || (cur ? cur.name : "");
+  const quickAdd = (name, icon, color) => {
+    const id = Date.now();
+    setSubjects([...subjects, { id, name, icon, color, units: [] }]);
+    setView(id);
+  };
+  const title = { overview: "نظرة عامة", tasks: "المهام والبومودورو", notes: "الملاحظات", guide: "دليل الاستخدام" }[view] || (cur ? cur.name : "");
 
   return (
     <div
@@ -165,7 +178,7 @@ export default function App() {
 
           {view === "overview" && (
             <>
-              <Overview subjects={subjects} open={setView} toggleItem={toggleItem} />
+              <Overview subjects={subjects} open={setView} toggleItem={toggleItem} quickAdd={quickAdd}/>
               <div className={`${card} mt-4`}>
                 <h2 className="mb-3 font-extrabold">
                   <Icon n="fa-circle-plus" className="me-2" />
@@ -209,11 +222,20 @@ export default function App() {
             </div>
           )}
                    {view === "notes" && <Notes />}
+          {view === "guide" && <Guide setView={go} />}
 
           <Footer setView={setView} done={done} total={all.length} subjects={subjects.length} />
         </main>
       </div>
-
+      <button
+        onClick={() => setHelp(true)}
+        aria-label="مساعدة"
+        className="fixed start-4 z-30 grid h-12 w-12 place-items-center rounded-full border-2 border-black bg-yellow-300 text-lg shadow-[3px_3px_0_0_#000] transition active:translate-x-[3px] active:translate-y-[3px] active:shadow-none"
+        style={{ bottom: "calc(env(safe-area-inset-bottom, 0px) + 1rem)" }}
+      >
+        <Icon n="fa-question" />
+      </button>
+      <Welcome open={help} onClose={closeHelp} />
       {toast && (
         <div
           role="status"
