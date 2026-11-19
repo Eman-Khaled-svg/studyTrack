@@ -1,8 +1,9 @@
 import { Icon, Bar } from "./ui";
 import { stat } from "../utils/helpers";
 import { ico } from "../data/subjects";
+import Avatar from "./Avatar";
 
-export default function Sidebar({ subjects, view, setView, done, confirmReset, reset, open, onClose }) {
+export default function Sidebar({ subjects, view, setView, done, confirmReset, reset, open, onClose, isAdmin, user, onLogout }) {
   const base = "flex w-full items-center gap-3 whitespace-nowrap rounded-xl border-2 px-3 py-2 text-start text-sm transition";
   const off = "border-transparent hover:border-black/20 hover:bg-black/5";
   const on = "border-black font-bold shadow-[3px_3px_0_0_#000]";
@@ -76,10 +77,33 @@ export default function Sidebar({ subjects, view, setView, done, confirmReset, r
         <div className="px-2 pb-1 pt-4 text-xs font-extrabold text-black/40">أدوات</div>
         {item("tasks", "fa-stopwatch", "المهام والبومودورو")}
         {item("notes", "fa-pen-to-square", "الملاحظات")}
+        {item("guide", "fa-book-open", "دليل الاستخدام")}
+        {isAdmin && item("admin", "fa-user-shield", "لوحة الأدمن")}
         <button className={`${base} ${off} mt-auto text-black/50 hover:!text-red-600`} onClick={reset}>
           <Icon n="fa-arrow-rotate-left" className="w-5 text-center" />
           {confirmReset ? "اضغط تاني للتأكيد" : "إعادة ضبط التقدم"}
         </button>
+                        {user && (
+          <div className="mt-2 border-t-2 border-black/10 pt-3">
+            <button
+              className={`${base} ${view === "profile" ? `${on} bg-yellow-300` : off}`}
+              aria-current={view === "profile" ? "page" : undefined}
+              onClick={() => setView("profile")}
+            >
+              <Avatar user={user} size={34} />
+              <span className="min-w-0 flex-1 text-start">
+                <span className="block truncate text-sm font-bold">{user.displayName || "حسابي"}</span>
+                <span className="block truncate text-xs font-normal text-black/60" dir="ltr">
+                  {user.email}
+                </span>
+              </span>
+            </button>
+            <button className={`${base} ${off}`} onClick={onLogout}>
+              <Icon n="fa-right-from-bracket" className="w-5 text-center" />
+              تسجيل الخروج
+            </button>
+          </div>
+        )}
       </aside>
     </>
   );

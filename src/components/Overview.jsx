@@ -1,5 +1,5 @@
-import { Icon, Bar, Ring, IconBox, card, muted } from "./ui";
-import { lecs, stat, pct, today, daysLeft, streak } from "../utils/helpers";
+import { Icon, Bar, Ring, IconBox, card, muted, btnGhost } from "./ui";
+import { lecs, stat, pct, today, daysLeft, streak, fmtMin, focusMin } from "../utils/helpers";
 import { ico, TYPES } from "../data/subjects";
 
 const key = (s) => {
@@ -7,7 +7,7 @@ const key = (s) => {
   return n === null || n < 0 ? 9999 : n;
 };
 
-export default function Overview({ subjects, open, toggleItem }) {
+export default function Overview({ subjects, open, toggleItem, goal, setGoal, sessions }) {
   const all = subjects.flatMap(lecs);
   const d = all.filter((x) => x.done).length;
   const p = pct(d, all.length);
@@ -22,7 +22,7 @@ export default function Overview({ subjects, open, toggleItem }) {
 
   const tiles = [
     { icon: "fa-fire", color: "#FF8A3D", v: streak(subjects), l: "يوم متتالي" },
-    { icon: "fa-bolt", color: "#FFD60A", v: doneToday, l: "خلصت النهارده" },
+    { icon: "fa-clock", color: "#FFD60A", v: fmtMin(focusMin(sessions, { date: today() })), l: "تركيز النهارده" },
     {
       icon: "fa-calendar-day",
       color: "#FF3B4E",
@@ -53,6 +53,30 @@ export default function Overview({ subjects, open, toggleItem }) {
         </div>
       </div>
 
+      <div className={`${card} flex flex-wrap items-center gap-4`}>
+        <IconBox icon="fa-bullseye" color="#FF3B4E" className="h-12 w-12 text-xl" />
+        <div className="min-w-[180px] flex-1">
+          <div className="flex items-baseline justify-between font-extrabold">
+            <span>هدف النهارده</span>
+            <span className="font-mono text-sm">
+              {Math.min(doneToday, goal)}/{goal} درس
+              {doneToday >= goal && <Icon n="fa-circle-check" className="ms-1.5 text-green-600" />}
+            </span>
+          </div>
+          <Bar p={pct(Math.min(doneToday, goal), goal)} color="#22E55E" className="mt-2 !h-4 w-full !flex-none" />
+        </div>
+        <div className="flex items-center gap-1.5 text-xs font-bold">
+          <span>الهدف اليومي</span>
+          <button className={`${btnGhost} !px-2.5 !py-1`} onClick={() => setGoal(Math.max(1, goal - 1))} aria-label="قلّل الهدف">
+            <Icon n="fa-minus" />
+          </button>
+          <b className="w-6 text-center font-mono text-sm">{goal}</b>
+          <button className={`${btnGhost} !px-2.5 !py-1`} onClick={() => setGoal(Math.min(30, goal + 1))} aria-label="زوّد الهدف">
+            <Icon n="fa-plus" />
+          </button>
+        </div>
+      </div>
+
       <div className="mb-4 grid gap-3 sm:grid-cols-3">
         {tiles.map((t) => (
           <div key={t.icon} className="flex items-center gap-3 rounded-2xl border-2 border-black bg-white p-3 shadow-[3px_3px_0_0_#000]">
@@ -66,8 +90,6 @@ export default function Overview({ subjects, open, toggleItem }) {
       </div>
 
       <div className={card}>
-        <h2 className="mb-2 font-extrabold">
-                <div className={card}>
         <h2 className="mb-3 font-extrabold">
           <Icon n="fa-calendar-check" className="me-2 text-red-500" />
           جدول الامتحانات
@@ -108,6 +130,9 @@ export default function Overview({ subjects, open, toggleItem }) {
           </div>
         )}
       </div>
+
+      <div className={card}>
+        <h2 className="mb-2 font-extrabold">
           <Icon n="fa-bullseye" className="me-2 text-red-500" />
           المذاكرة الجاية
         </h2>

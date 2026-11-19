@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { usePersist } from "./hooks/usePersist";
+import { usePersist, load } from "./hooks/usePersist";
 import { initSubjects, migrate, CHEERS } from "./data/subjects";
 import { lecs, pct, today } from "./utils/helpers";
 import Sidebar from "./components/Sidebar";
@@ -10,18 +10,30 @@ import Todos from "./components/Todos";
 import Notes from "./components/Notes";
 import Footer from "./components/Footer";
 import { Icon, Ring, card, input, btnMain, muted } from "./components/ui";
-
-const FONTS = [
-  "https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css",
-  "https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;800&display=swap",
-];
-
-export default function App() {
+import Welcome from "./components/Welcome";
+import Guide from "./components/Guide";
+import Admin from "./components/Admin";
+import Profile from "./components/Profile";
+import Avatar from "./components/Avatar";
+export default function App({ auth }) {
   const [subjects, setSubjects] = usePersist("st_v3", initSubjects);
   const [view, setView] = useState("overview");
   const [toast, setToast] = useState(null);
+  const [undo, setUndo] = useState(null);
+  const [sessions, setSessions] = usePersist("st_sessions", []);
+  const [goal, setGoal] = usePersist("st_goal", 3);
+  const [theme, setTheme] = usePersist("st_theme", () =>
+    window.matchMedia?.("(prefers-color-scheme: dark)")?.matches ? "dark" : "light"
+  );
   const [confirmReset, setConfirmReset] = useState(false);
   const [newName, setNewName] = useState("");
+    const [help, setHelp] = useState(() => !load("st_welcome"));
+  const closeHelp = () => {
+    setHelp(false);
+    try {
+      localStorage.setItem("st_welcome", "1");
+    } catch (e) {}
+  };
     const [menu, setMenu] = useState(false);
 
 
@@ -41,15 +53,7 @@ export default function App() {
     setMenu(false);
   };
 
-  // Font Awesome + Cairo (احذفهم لو ضفتهم في index.html)
   useEffect(() => {
-    FONTS.forEach((href) => {
-      if (document.querySelector(`link[href="${href}"]`)) return;
-      const l = document.createElement("link");
-      l.rel = "stylesheet";
-      l.href = href;
-      document.head.appendChild(l);
-    });
     setSubjects((s) => migrate(s));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -66,12 +70,44 @@ export default function App() {
     return () => clearTimeout(id);
   }, [confirmReset]);
 
+  // الوضع الداكن: كلاس على <html> (الستايل في index.css)
+  useEffect(() => {
+    document.documentElement.classList.toggle("dark", theme === "dark");
+    document.querySelector('meta[name="theme-color"]')?.setAttribute("content", theme === "dark" ? "#0A0905" : "#FAF6EB");
+  }, [theme]);
+
+  useEffect(() => {
+    if (!undo) return;
+    const id = setTimeout(() => setUndo(null), 7000);
+    return () => clearTimeout(id);
+  }, [undo]);
+
+  const askUndo = (label, restore) => setUndo({ label, restore });
+
+  const addSession = (sid, m) => {
+    setSessions((p) => [...p.slice(-1999), { d: today(), s: sid, m }]);
+    setToast(`جلسة تركيز ${m} دقيقة اتسجّلت`);
+  };
+
+  const removeSubject = (s) => {
+    const i = subjects.findIndex((x) => x.id === s.id);
+    setSubjects(subjects.filter((x) => x.id !== s.id));
+    setView("overview");
+    askUndo(`تم حذف مادة «${s.name}»`, () =>
+      setSubjects((prev) => (prev.some((x) => x.id === s.id) ? prev : [...prev.slice(0, i), s, ...prev.slice(i)]))
+    );
+  };
+
   const cheer = () => setToast(CHEERS[Math.floor(Math.random() * CHEERS.length)]);
-  const upd = (id, fn) => setSubjects(subjects.map((s) => (s.id === id ? fn(s) : s)));
+  const upd = (id, fn) => setSubjects((prev) => prev.map((s) => (s.id === id ? fn(s) : s)));
 
   const toggleItem = (sid, uid, lid) => {
     const l = subjects.find((s) => s.id === sid).units.find((u) => u.id === uid).lectures.find((x) => x.id === lid);
-    if (!l.done) cheer();
+    if (!l.done) {
+      const before = subjects.flatMap(lecs).filter((x) => x.done && x.doneAt === today()).length;
+      if (before + 1 === goal) setToast("حققت هدف النهارده! كمّل بنفس الحماس");
+      else cheer();
+    }
     upd(sid, (s) => ({
       ...s,
       units: s.units.map((u) =>
@@ -91,7 +127,7 @@ export default function App() {
     setSubjects(
       subjects.map((s) => ({
         ...s,
-        units: s.units.map((u) => ({ ...u, lectures: u.lectures.map((l) => ({ ...l, done: false })) })),
+        units: s.units.map((u) => ({ ...u, lectures: u.lectures.map((l) => ({ ...l, done: false, doneAt: undefined })) })),
       }))
     );
     setConfirmReset(false);
@@ -105,8 +141,21 @@ export default function App() {
     setNewName("");
     setView(id);
   };
-
-  const title = { overview: "نظرة عامة", tasks: "المهام والبومودورو", notes: "الملاحظات" }[view] || (cur ? cur.name : "");
+  const quickAdd = (name, icon, color) => {
+    const id = Date.now();
+    setSubjects([...subjects, { id, name, icon, color, units: [] }]);
+    setView(id);
+  };
+  const themeBtn = (
+    <button
+      onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+      aria-label={theme === "dark" ? "الوضع الفاتح" : "الوضع الداكن"}
+      className="grid h-9 w-9 flex-none place-items-center rounded-lg border-2 border-black bg-white transition hover:bg-yellow-300"
+    >
+      <Icon n={theme === "dark" ? "fa-sun" : "fa-moon"} />
+    </button>
+  );
+  const title = { profile: "حسابي" , overview: "نظرة عامة", tasks: "المهام والبومودورو", notes: "الملاحظات", guide: "دليل الاستخدام",admin: "لوحة الأدمن" }[view] || (cur ? cur.name : "");
 
   return (
     <div
@@ -135,6 +184,12 @@ export default function App() {
           <Icon n="fa-bars" />
         </button>
         <b className="min-w-0 flex-1 truncate">{title}</b>
+                {auth?.user && (
+          <button onClick={() => go("profile")} aria-label="حسابي" className="flex-none">
+            <Avatar user={auth.user} size={36} />
+          </button>
+        )}
+        {themeBtn}
         <Ring value={pct(done, all.length)} size={36} stroke={4} />
       </header>
       <div className="lg:grid lg:grid-cols-[18rem_1fr]">
@@ -145,6 +200,9 @@ export default function App() {
           done={done}
           confirmReset={confirmReset}
           reset={reset}
+           isAdmin={auth?.isAdmin}
+          user={auth?.user}
+          onLogout={auth?.logout}
           open={menu}
           onClose={() => setMenu(false)}
         />
@@ -158,6 +216,7 @@ export default function App() {
               </p>
             </div>
             <div className="flex items-center gap-2 rounded-xl border-2 border-black bg-white px-3 py-1.5 shadow-[3px_3px_0_0_#000]">
+              {themeBtn}
               <Ring value={pct(done, all.length)} size={44} stroke={5} />
               <span className={muted}>الإجمالي</span>
             </div>
@@ -165,7 +224,7 @@ export default function App() {
 
           {view === "overview" && (
             <>
-              <Overview subjects={subjects} open={setView} toggleItem={toggleItem} />
+              <Overview subjects={subjects} open={setView} toggleItem={toggleItem} quickAdd={quickAdd} goal={goal} setGoal={setGoal} sessions={sessions} />
               <div className={`${card} mt-4`}>
                 <h2 className="mb-3 font-extrabold">
                   <Icon n="fa-circle-plus" className="me-2" />
@@ -195,25 +254,55 @@ export default function App() {
               s={cur}
               upd={upd}
               toggleItem={toggleItem}
-              remove={() => {
-                setSubjects(subjects.filter((x) => x.id !== cur.id));
-                setView("overview");
-              }}
+              remove={() => removeSubject(cur)}
+              sessions={sessions}
+              askUndo={askUndo}
             />
           )}
 
-          {view === "tasks" && (
+          {/* بيفضل شغال في الخلفية علشان العدّاد ما يتصفّرش لما تنتقل لصفحة تانية */}
+          <div className={view === "tasks" ? "" : "hidden"}>
             <div className="grid items-start gap-4 md:grid-cols-2">
-              <Pomodoro />
-              <Todos cheer={cheer} />
+              <Pomodoro subjects={subjects} sessions={sessions} onSession={addSession} />
+              <Todos cheer={cheer} askUndo={askUndo} />
             </div>
-          )}
+          </div>
                    {view === "notes" && <Notes />}
-
+          {view === "guide" && <Guide setView={go} />}
+          {view === "admin" && auth?.isAdmin && <Admin />}
+                    {view === "profile" && auth?.user && (
+            <Profile user={auth.user} isAdmin={auth.isAdmin} subjects={subjects} sessions={sessions} logout={auth.logout} />
+          )}
           <Footer setView={setView} done={done} total={all.length} subjects={subjects.length} />
         </main>
       </div>
-
+      <button
+        onClick={() => setHelp(true)}
+        aria-label="مساعدة"
+        className="fixed start-4 z-30 grid h-12 w-12 place-items-center rounded-full border-2 border-black bg-yellow-300 text-lg shadow-[3px_3px_0_0_#000] transition active:translate-x-[3px] active:translate-y-[3px] active:shadow-none"
+        style={{ bottom: "calc(env(safe-area-inset-bottom, 0px) + 1rem)" }}
+      >
+        <Icon n="fa-question" />
+      </button>
+      <Welcome open={help} onClose={closeHelp} />
+      {undo && (
+        <div
+          role="status"
+          className="fixed start-1/2 z-[70] flex max-w-[92vw] -translate-x-1/2 items-center gap-3 rounded-xl border-2 border-black bg-white px-4 py-2.5 shadow-[4px_4px_0_0_#000] rtl:translate-x-1/2"
+          style={{ bottom: "calc(env(safe-area-inset-bottom, 0px) + 4.75rem)" }}
+        >
+          <span className="text-sm font-bold">{undo.label}</span>
+          <button
+            onClick={() => {
+              undo.restore();
+              setUndo(null);
+            }}
+            className="rounded-lg border-2 border-black bg-yellow-300 px-3 py-0.5 text-sm font-extrabold"
+          >
+            <Icon n="fa-rotate-left" className="me-1" /> تراجع
+          </button>
+        </div>
+      )}
       {toast && (
         <div
           role="status"

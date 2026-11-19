@@ -1,0 +1,17 @@
+{
+  "name": "متابعة الدراسة",
+  "short_name": "المذاكرة",
+  "description": "تابع مذاكرتك: مواد، دروس، امتحانات، مهام وبومودورو",
+  "lang": "ar",
+  "dir": "rtl",
+  "start_url": ".",
+  "scope": ".",
+  "display": "standalone",
+  "background_color": "#FAF6EB",
+  "theme_color": "#FFD60A",
+  "icons": [
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

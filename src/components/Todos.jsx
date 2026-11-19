@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Icon, card, input, btnMain, btnDel, muted } from "./ui";
 import { usePersist } from "../hooks/usePersist";
 
-export default function Todos({ cheer }) {
+export default function Todos({ cheer, askUndo }) {
   const [items, setItems] = usePersist("st_todos", []);
   const [text, setText] = useState("");
 
@@ -59,7 +59,9 @@ export default function Todos({ cheer }) {
               aria-label="حذف المهمة"
               onClick={(e) => {
                 e.preventDefault();
+                const snap = items;
                 setItems(items.filter((x) => x.id !== i.id));
+                askUndo("تم حذف المهمة", () => setItems(snap));
               }}
             >
               <Icon n="fa-trash-can" />

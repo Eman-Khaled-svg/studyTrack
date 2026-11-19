@@ -55,3 +55,4 @@ export const IconBox = ({ icon, color, className = "h-11 w-11 text-lg" }) => (
     <Icon n={icon} />
   </div>
 );
+

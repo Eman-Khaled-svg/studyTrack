@@ -1,15 +1,17 @@
 import { useState } from "react";
 import { Icon, Bar, IconBox, card, input, btnMain, btnGhost, btnDel, muted } from "./ui";
-import { stat, pct, daysLeft } from "../utils/helpers";
+import { stat, pct, daysLeft, fmtMin, focusMin } from "../utils/helpers";
 import { ico, TYPES, PRESETS } from "../data/subjects";
 
-export default function SubjectView({ s, upd, toggleItem, remove }) {
+export default function SubjectView({ s, upd, toggleItem, remove, sessions, askUndo }) {
   const [closed, setClosed] = useState({});
   const [drafts, setDrafts] = useState({});
   const [secName, setSecName] = useState("");
+  const [first, setFirst] = useState("");
   const [q, setQ] = useState("");
   const [hideDone, setHideDone] = useState(false);
   const st = stat(s);
+  const focus = focusMin(sessions, { sid: s.id });
   const left = daysLeft(s.exam);
   const rest = st.t - st.d;
   const examLabel =
@@ -19,7 +21,7 @@ export default function SubjectView({ s, upd, toggleItem, remove }) {
       ? "الامتحان عدّى"
       : left === 0
       ? "الامتحان النهارده!"
-      : `باقي ${left} يوم` + (rest > 0 ? ` · المطلوب ${Math.ceil((rest / left) * 10) / 10} عنصر/يوم` : " · خلصت كل حاجة");
+      : `باقي ${left} يوم` + (rest > 0 ? ` · المطلوب ${Math.ceil((rest / left) * 10) / 10} درس/يوم` : " · خلصت كل حاجة");
 
   const setUnits = (fn) => upd(s.id, (x) => ({ ...x, units: fn(x.units) }));
   const mapUnit = (uid, fn) => setUnits((us) => us.map((u) => (u.id === uid ? fn(u) : u)));
@@ -29,11 +31,11 @@ export default function SubjectView({ s, upd, toggleItem, remove }) {
 
   const toggle = (uid, lid) => toggleItem(s.id, uid, lid);
 
-  // إضافة عنصر واحد، أو كذا عنصر مرقّمين مرة واحدة (مثلاً Lecture × 5)
-  const addItems = (u) => {
+  // إضافة درس واحد، أو كذا درس مرقّمين مرة واحدة
+  const addItems = (u, multi = false) => {
     const d = draft(u);
-    const n = Math.max(1, Math.min(60, parseInt(d.count) || 1));
-    const base = d.name.trim() || TYPES[d.type].label;
+    const n = multi ? Math.max(1, Math.min(60, parseInt(d.count) || 1)) : 1;
+    const base = d.name.trim() || "درس";
     const start = u.lectures.length;
     const numbered = n > 1 || !d.name.trim();
     const items = Array.from({ length: n }, (_, i) => ({
@@ -46,7 +48,24 @@ export default function SubjectView({ s, upd, toggleItem, remove }) {
     setDrafts({ ...drafts, [u.id]: { ...d, name: "", count: 1 } });
   };
 
-  const delItem = (uid, lid) => mapUnit(uid, (u) => ({ ...u, lectures: u.lectures.filter((x) => x.id !== lid) }));
+  // أول درس في المادة: بنعمل القسم تلقائي علشان المستخدم ما يحتاجش يفهم "الأقسام" الأول
+  const addFirst = () => {
+    const t = first.trim() || "الدرس 1";
+    setUnits(() => [{ id: Date.now(), title: "الدروس", type: "pdf", lectures: [{ id: Date.now() + 1, title: t, type: "pdf", done: false }] }]);
+    setFirst("");
+  };
+
+  // الحذف بيظهر معاه زرار «تراجع» لمدة 7 ثواني
+  const delItem = (uid, lid) => {
+    const snap = s;
+    mapUnit(uid, (u) => ({ ...u, lectures: u.lectures.filter((x) => x.id !== lid) }));
+    askUndo("تم حذف الدرس", () => upd(s.id, () => snap));
+  };
+  const delSection = (u) => {
+    const snap = s;
+    setUnits((us) => us.filter((x) => x.id !== u.id));
+    askUndo(`تم حذف قسم «${u.title}»`, () => upd(s.id, () => snap));
+  };
 
   const addSection = (title, type = "pdf") => {
     const t = title.trim() || "قسم " + (s.units.length + 1);
@@ -62,7 +81,7 @@ export default function SubjectView({ s, upd, toggleItem, remove }) {
       <div className={`${card} grid grid-cols-[auto_1fr] items-center gap-4 sm:grid-cols-[auto_1fr_auto]`} style={{ background: s.color + "55" }}>
         <IconBox icon={ico(s)} color={s.color} className="h-14 w-14 text-2xl" />
         <div className="min-w-0">
-  <h1 className="text-xl font-extrabold sm:text-2xl">
+          <h1 className="text-xl font-extrabold sm:text-2xl">
             {s.name}
             {st.p === 100 && st.t > 0 && (
               <span className="ms-3 rounded-lg border-2 border-black bg-green-400 px-2 align-middle text-xs font-extrabold">
@@ -71,18 +90,18 @@ export default function SubjectView({ s, upd, toggleItem, remove }) {
             )}
           </h1>
           <div className={muted}>
-            {s.units.length} أقسام · {st.t} عنصر للمذاكرة
+            {s.units.length} أقسام · {st.t} درس للمذاكرة{focus > 0 && ` · تركيز ${fmtMin(focus)}`}
           </div>
           <div className="mt-2 flex flex-wrap items-center gap-2 text-xs">
-           <label className="flex flex-wrap items-center gap-1.5 font-bold">
+            <label className="flex flex-wrap items-center gap-1.5 font-bold">
               <Icon n="fa-calendar-day" /> الامتحان:
               <input
                 type="date"
                 value={s.exam || ""}
                 onChange={(e) => upd(s.id, (x) => ({ ...x, exam: e.target.value }))}
-               className="w-36 min-w-0 rounded-lg border-2 border-black bg-white px-2 py-0.5 font-mono"
+                className="w-36 min-w-0 rounded-lg border-2 border-black bg-white px-2 py-0.5 font-mono"
               />
-                       </label>
+            </label>
             {s.exam && (
               <button
                 type="button"
@@ -118,7 +137,7 @@ export default function SubjectView({ s, upd, toggleItem, remove }) {
             <input
               type="text"
               className={`${input} !basis-auto w-full !ps-9`}
-              placeholder="دوّر في العناصر…"
+              placeholder="دوّر في الدروس…"
               value={q}
               onChange={(e) => setQ(e.target.value)}
               aria-label="بحث"
@@ -134,7 +153,28 @@ export default function SubjectView({ s, upd, toggleItem, remove }) {
       )}
 
       {s.units.length === 0 && (
-        <div className={`${card} text-center text-black/50`}>مفيش أقسام لسه. ضيف قسم من تحت (Lectures, Sections, Quiz…).</div>
+        <div className={`${card} text-center`}>
+          <div className="mx-auto mb-3 grid h-14 w-14 place-items-center rounded-2xl border-2 border-black bg-yellow-300 text-2xl">
+            <Icon n="fa-circle-plus" />
+          </div>
+          <h2 className="text-xl font-extrabold">ضيف أول درس في المادة</h2>
+          <p className="mx-auto mt-1 max-w-sm text-sm leading-7 text-black/60">اكتب اسم الدرس (مثلاً: المحاضرة الأولى) وكمّل بعدها بنفس الطريقة.</p>
+          <div className="mx-auto mt-4 flex max-w-md gap-2">
+            <input
+              type="text"
+              className={`${input} !py-3`}
+              placeholder="مثلاً: المحاضرة الأولى"
+              value={first}
+              onChange={(e) => setFirst(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && addFirst()}
+              aria-label="اسم أول درس"
+              autoFocus
+            />
+            <button className={btnMain} onClick={addFirst}>
+              <Icon n="fa-plus" /> إضافة
+            </button>
+          </div>
+        </div>
       )}
 
       {s.units.map((u) => {
@@ -161,7 +201,7 @@ export default function SubjectView({ s, upd, toggleItem, remove }) {
             </button>
             {isOpen && (
               <div className="border-t-2 border-black bg-[#FAF6EB] px-3 pb-3">
-                {u.lectures.length === 0 && <div className="py-5 text-center text-sm text-black/45">القسم فاضي. ضيف أول عنصر.</div>}
+                {u.lectures.length === 0 && <div className="py-5 text-center text-sm text-black/45">القسم فاضي. اكتب اسم الدرس تحت واضغط إضافة.</div>}
                 <div className="divide-y divide-black/10">
                   {vis.map((l) => {
                     const t = TYPES[l.type] || TYPES.other;
@@ -181,8 +221,8 @@ export default function SubjectView({ s, upd, toggleItem, remove }) {
                         <span className={`flex-1 break-words ${l.done ? "text-black/40 line-through" : "font-semibold"}`}>{l.title}</span>
                         <button
                           type="button"
-                          className={`${btnDel} sm:opacity-0 sm:group-hover:opacity-100`}
-                          aria-label="حذف العنصر"
+                          className={`${btnDel} sm:opacity-0 sm:group-hover:opacity-100 sm:focus-visible:opacity-100`}
+                          aria-label="حذف الدرس"
                           onClick={(e) => {
                             e.preventDefault();
                             delItem(u.id, l.id);
@@ -195,44 +235,56 @@ export default function SubjectView({ s, upd, toggleItem, remove }) {
                   })}
                 </div>
 
-                <div className="mt-3 flex flex-wrap items-center gap-2 rounded-xl border-2 border-dashed border-black/40 bg-white p-2">
-                  <select
-                    className={`${input} !flex-none !basis-auto w-28`}
-                    value={f.type}
-                    onChange={(e) => setDraft(u, { type: e.target.value })}
-                    aria-label="نوع العنصر"
-                  >
-                    {Object.keys(TYPES).map((k) => (
-                      <option key={k} value={k}>
-                        {TYPES[k].label}
-                      </option>
-                    ))}
-                  </select>
-                  <input
-                    type="text"
-                    className={input}
-                    placeholder={`الاسم (مثلاً ${TYPES[f.type].label === "PDF" ? "Lecture" : "Section"}) — اتركه فاضي للترقيم`}
-                    value={f.name}
-                    onChange={(e) => setDraft(u, { name: e.target.value })}
-                    onKeyDown={(e) => e.key === "Enter" && addItems(u)}
-                    aria-label="اسم العنصر"
-                  />
-                  <input
-                    type="number"
-                    min="1"
-                    max="60"
-                    className={`${input} !flex-none !basis-auto w-16 text-center`}
-                    value={f.count}
-                    onChange={(e) => setDraft(u, { count: e.target.value })}
-                    aria-label="العدد"
-                    title="العدد"
-                  />
-                  <button className={btnMain} onClick={() => addItems(u)}>
-                    <Icon n="fa-plus" /> إضافة
-                  </button>
-                  <button className={btnDel} onClick={() => setUnits((us) => us.filter((x) => x.id !== u.id))}>
-                    <Icon n="fa-folder-minus" /> حذف القسم
-                  </button>
+                <div className="mt-3 rounded-xl border-2 border-dashed border-black/40 bg-white p-3">
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      className={`${input} !py-3`}
+                      placeholder="اكتب اسم الدرس واضغط Enter… مثلاً: المحاضرة الثانية"
+                      value={f.name}
+                      onChange={(e) => setDraft(u, { name: e.target.value })}
+                      onKeyDown={(e) => e.key === "Enter" && addItems(u)}
+                      aria-label="اسم الدرس"
+                    />
+                    <button className={btnMain} onClick={() => addItems(u)}>
+                      <Icon n="fa-plus" /> إضافة
+                    </button>
+                  </div>
+                  <div className="mt-3 flex flex-wrap items-center gap-1.5 text-xs">
+                    <span className="font-bold text-black/50">النوع:</span>
+                    {Object.keys(TYPES)
+                      .filter((k) => k !== "other")
+                      .map((k) => (
+                        <button
+                          key={k}
+                          type="button"
+                          onClick={() => setDraft(u, { type: k })}
+                          aria-pressed={f.type === k}
+                          className={`inline-flex items-center gap-1 rounded-lg border-2 border-black px-2 py-1 font-bold transition ${f.type === k ? "shadow-[2px_2px_0_0_#000]" : "bg-white opacity-60 hover:opacity-100"}`}
+                          style={f.type === k ? { background: TYPES[k].color } : undefined}
+                        >
+                          <Icon n={TYPES[k].icon} /> {TYPES[k].label}
+                        </button>
+                      ))}
+                  </div>
+                  <div className="mt-3 flex flex-wrap items-center gap-2 border-t border-black/10 pt-3 text-xs">
+                    <span className="font-bold text-black/50">عايز تضيف كذا درس مرة واحدة؟</span>
+                    <input
+                      type="number"
+                      min="2"
+                      max="60"
+                      className={`${input} !flex-none !basis-auto w-16 !py-1 text-center`}
+                      value={f.count}
+                      onChange={(e) => setDraft(u, { count: e.target.value })}
+                      aria-label="العدد"
+                    />
+                    <button className={`${btnGhost} !px-3 !py-1 !text-xs`} onClick={() => addItems(u, true)}>
+                      ضيفهم مرقّمين
+                    </button>
+                    <button className={`${btnDel} ms-auto`} onClick={() => delSection(u)}>
+                      <Icon n="fa-folder-minus" /> حذف القسم
+                    </button>
+                  </div>
                 </div>
               </div>
             )}
@@ -240,33 +292,36 @@ export default function SubjectView({ s, upd, toggleItem, remove }) {
         );
       })}
 
-      <div className={`${card} mt-5`}>
-        <h2 className="mb-3 font-extrabold">
-          <Icon n="fa-folder-plus" className="me-2" />
-          إضافة قسم
-        </h2>
-        <div className="mb-3 flex flex-wrap gap-2">
-          {PRESETS.map((p) => (
-            <button key={p.title} className={`${btnGhost} !px-3 !py-1.5`} onClick={() => addSection(p.title, p.type)}>
-              <Icon n="fa-plus" className="text-xs" /> {p.title}
+      {s.units.length > 0 && (
+        <div className={`${card} mt-5`}>
+          <h2 className="mb-3 font-extrabold">
+            <Icon n="fa-folder-plus" className="me-2" />
+            تنظيم الدروس في أقسام (اختياري)
+          </h2>
+          <p className="mb-3 text-xs text-black/55">القسم زي درج بتحط فيه دروسك. اختار من الجاهز أو اكتب اسم من عندك.</p>
+          <div className="mb-3 flex flex-wrap gap-2">
+            {PRESETS.map((p) => (
+              <button key={p.title} className={`${btnGhost} !px-3 !py-1.5`} onClick={() => addSection(p.title, p.type)}>
+                <Icon n="fa-plus" className="text-xs" /> {p.title}
+              </button>
+            ))}
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <input
+              type="text"
+              className={input}
+              placeholder="أو اكتب اسم قسم مخصص"
+              value={secName}
+              onChange={(e) => setSecName(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && addSection(secName)}
+              aria-label="قسم جديد"
+            />
+            <button className={btnMain} onClick={() => addSection(secName)}>
+              إضافة
             </button>
-          ))}
+          </div>
         </div>
-        <div className="flex flex-wrap gap-2">
-          <input
-            type="text"
-            className={input}
-            placeholder="أو اكتب اسم قسم مخصص"
-            value={secName}
-            onChange={(e) => setSecName(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && addSection(secName)}
-            aria-label="قسم جديد"
-          />
-          <button className={btnMain} onClick={() => addSection(secName)}>
-            إضافة
-          </button>
-        </div>
-      </div>
+      )}
       <button className={btnDel} onClick={remove}>
         <Icon n="fa-trash-can" /> حذف المادة
       </button>

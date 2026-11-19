@@ -1,16 +1,34 @@
-# React + Vite
+# متابعة الدراسة (StudyTrack)
 
-This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.
+موقع React + Vite + Tailwind لمتابعة المذاكرة: مواد، دروس، نسب إنجاز، امتحانات، هدف يومي، مهام، بومودورو وملاحظات.
 
-Currently, two official plugins are available:
+## التشغيل
+```bash
+npm install
+npm run dev      # للتجربة
+npm run build    # ينتج مجلد dist
+npm run preview  # معاينة النسخة النهائية
+```
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+## النشر
+ارفع محتوى `dist` على أي استضافة ثابتة (Netlify / Vercel / GitHub Pages / Cloudflare Pages). مفيش سيرفر ولا قاعدة بيانات. لازم HTTPS علشان التثبيت والشغل من غير نت (PWA).
 
-## React Compiler
+## المميزات
+- الوضع الداكن (زرار القمر/الشمس) ويتبع إعدادات الجهاز أول مرة.
+- تطبيق قابل للتثبيت ويشتغل من غير نت (`public/sw.js` و`public/manifest.webmanifest`). لو غيّرت في الكود وعايز المستخدمين ياخدوا التحديث فورًا، غيّر `CACHE` في `sw.js`.
+- بومودورو بمدة قابلة للتعديل، وبيسجّل دقايق التركيز على المادة المختارة.
+- هدف يومي بعدد الدروس، وتراجع (Undo) بعد أي حذف لمدة 7 ثواني.
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+## البيانات
+كل حاجة بتتحفظ في `localStorage` على جهاز المستخدم (المفاتيح: `st_v3`, `st_todos`, `st_note`, `st_sessions`, `st_goal`, `st_theme`, `st_pomo_cfg`, `st_pomo_subj`, `st_welcome`).
 
-## Expanding the Oxlint configuration
+## هيكل المشروع
+- `src/data/subjects.js`: المواد الافتراضية والأنواع والرسائل التحفيزية.
+- `src/components/`: الصفحات والعناصر المشتركة (`ui.jsx`).
+- `src/utils/helpers.js`: النسب والأيام المتبقية والـ streak ودقايق التركيز.
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and Oxlint's TypeScript related rules in your project.
+## عدّاد الزيارات (للأدمن بس)
+1. اعمل حساب مجاني على goatcounter.com واختار كود (مثلًا `mystudy`).
+2. انسخ `.env.example` باسم `.env` واكتب `VITE_GOATCOUNTER=mystudy`، وبعدها `npm run build` وارفع `dist`.
+3. اللوحة على `mystudy.goatcounter.com` ولازم تسجّل دخول بحسابك، ومفيش أي زرار أو لينك ليها جوه الموقع.
+4. علشان زياراتك إنت ما تتحسبش: افتح موقعك مرة وزوّد `#toggle-goatcounter` في آخر اللينك.
