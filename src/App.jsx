@@ -15,6 +15,7 @@ import Guide from "./components/Guide";
 import Admin from "./components/Admin";
 import Profile from "./components/Profile";
 import Avatar from "./components/Avatar";
+
 export default function App({ auth }) {
   const [subjects, setSubjects] = usePersist("st_v3", initSubjects);
   const [view, setView] = useState("overview");
@@ -27,15 +28,14 @@ export default function App({ auth }) {
   );
   const [confirmReset, setConfirmReset] = useState(false);
   const [newName, setNewName] = useState("");
-    const [help, setHelp] = useState(() => !load("st_welcome"));
+  const [help, setHelp] = useState(() => !load("st_welcome"));
   const closeHelp = () => {
     setHelp(false);
     try {
       localStorage.setItem("st_welcome", "1");
     } catch (e) {}
   };
-    const [menu, setMenu] = useState(false);
-
+  const [menu, setMenu] = useState(false);
 
   // Esc يقفل القائمة + منع سكرول الصفحة وهي مفتوحة
   useEffect(() => {
@@ -146,6 +146,7 @@ export default function App({ auth }) {
     setSubjects([...subjects, { id, name, icon, color, units: [] }]);
     setView(id);
   };
+
   const themeBtn = (
     <button
       onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
@@ -155,7 +156,15 @@ export default function App({ auth }) {
       <Icon n={theme === "dark" ? "fa-sun" : "fa-moon"} />
     </button>
   );
-  const title = { profile: "حسابي" , overview: "نظرة عامة", tasks: "المهام والبومودورو", notes: "الملاحظات", guide: "دليل الاستخدام",admin: "لوحة الأدمن" }[view] || (cur ? cur.name : "");
+  const title =
+    {
+      overview: "نظرة عامة",
+      tasks: "المهام والبومودورو",
+      notes: "الملاحظات",
+      guide: "دليل الاستخدام",
+      admin: "لوحة الأدمن",
+      profile: "حسابي",
+    }[view] || (cur ? cur.name : "");
 
   return (
     <div
@@ -171,7 +180,7 @@ export default function App({ auth }) {
       }}
     >
       <div className="fixed inset-x-0 top-0 z-[60] bg-white" style={{ height: "env(safe-area-inset-top, 0px)" }} />
-            <header
+      <header
         className="sticky z-20 flex items-center gap-3 border-b-2 border-black bg-white px-3 py-2 lg:hidden"
         style={{ top: "env(safe-area-inset-top, 0px)" }}
       >
@@ -184,7 +193,7 @@ export default function App({ auth }) {
           <Icon n="fa-bars" />
         </button>
         <b className="min-w-0 flex-1 truncate">{title}</b>
-                {auth?.user && (
+        {auth?.user && (
           <button onClick={() => go("profile")} aria-label="حسابي" className="flex-none">
             <Avatar user={auth.user} size={36} />
           </button>
@@ -200,7 +209,7 @@ export default function App({ auth }) {
           done={done}
           confirmReset={confirmReset}
           reset={reset}
-           isAdmin={auth?.isAdmin}
+          isAdmin={auth?.isAdmin}
           user={auth?.user}
           onLogout={auth?.logout}
           open={menu}
@@ -208,7 +217,7 @@ export default function App({ auth }) {
         />
 
         <main className="min-w-0 px-4 pb-16 pt-5 lg:px-8 lg:pt-7">
-                    <div className="mb-5 hidden items-center justify-between lg:flex">
+          <div className="mb-5 hidden items-center justify-between lg:flex">
             <div>
               <h1 className="text-3xl font-extrabold">{title}</h1>
               <p className="font-mono text-xs text-black/55">
@@ -267,10 +276,10 @@ export default function App({ auth }) {
               <Todos cheer={cheer} askUndo={askUndo} />
             </div>
           </div>
-                   {view === "notes" && <Notes />}
+          {view === "notes" && <Notes />}
           {view === "guide" && <Guide setView={go} />}
           {view === "admin" && auth?.isAdmin && <Admin />}
-                    {view === "profile" && auth?.user && (
+          {view === "profile" && auth?.user && (
             <Profile user={auth.user} isAdmin={auth.isAdmin} subjects={subjects} sessions={sessions} logout={auth.logout} />
           )}
           <Footer setView={setView} done={done} total={all.length} subjects={subjects.length} />
